@@ -1,0 +1,34 @@
+# Virtual environment
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+
+# Environment / secrets
+.env
+.env.*
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Jupyter runtime / kernel state
+.jupyter/
+*.log
+
+# Data / model artifacts (uncomment if you don't want these tracked)
+# data/
+# *.pt
+# *.ckpt
