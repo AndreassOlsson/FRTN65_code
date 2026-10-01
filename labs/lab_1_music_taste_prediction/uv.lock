@@ -2888,7 +2888,7 @@ requires-dist = [
     { name = "jupyter", specifier = ">=1.0" },
     { name = "matplotlib", specifier = ">=3.8" },
     { name = "pandas", specifier = ">=2.2" },
-    { name = "pandera", specifier = ">=0.20" },
+    { name = "pandera", specifier = ">=0.24" },
     { name = "scikit-learn", specifier = ">=1.5" },
     { name = "seaborn", specifier = ">=0.13" },
 ]
