@@ -7,16 +7,44 @@ From this folder, with [uv](https://docs.astral.sh/uv/) installed:
 ```sh
 uv sync        # the environment, from pyproject.toml and uv.lock
 make data      # fetches training_data.csv and songs_to_classify.csv into data/ (gitignored)
-make test      # the data contract against both files
+make test      # the contract, the protocol, the decision rule and the submission string
 make explore   # writes figures/ and prints the tables behind results/01-exploration.md
+make baselines # dummy, logistic regression and kNN through the protocol: results/02-baselines.csv
+make sweep     # every other method on the same splits: results/03-sweep.csv; about 36 minutes on 4 cores
+make predict   # refits the chosen method and writes results/submission-<date>.txt; about a minute
 ```
 
+So `uv sync && make data && make test && make sweep && make predict`
+reproduces everything: the sweep's CSV byte for byte, the figure, the
+decision and the submission string.
+
 `DESIGN.md` is the design the code follows. The package is
-`src/songtaste/` (`data.py` the contract, `explore.py` the exploration),
-`notebooks/` are the places to look at things, `results/` holds the
-written findings, `instructions/` the files given to us (the spec, the
-sample code, a sample of the data's shape). Data files are never
-committed. The final hand-in will be bundled as a zip once done.
+`src/songtaste/`, one module per stage: `data.py` the contract,
+`explore.py` the exploration, `features.py` the preprocessor,
+`models.py` the registry of methods, `evaluate.py` the protocol,
+`report.py` the comparison and the decision, `predict.py` the final
+refit and the submission. `notebooks/` are the places to look at
+things, `results/` holds the written findings (`protocol.md` first,
+then one file per stage), `instructions/` the files given to us (the
+spec, the sample code, a sample of the data's shape). Data files are
+never committed.
+
+## The hand-in
+
+`handin/` holds what goes to Canvas. `slides.md` is the source of the
+presentation and `slides.pptx` is built from it
+(`uv run --with python-pptx python handin/make_slides.py`, which
+pulls python-pptx in for that one run). `bash handin/build.sh` (or
+`make handin`) zips the slides with everything above, minus `data/`,
+`.venv/` and `instructions/`, into `handin/Andreas-Olsson.zip`. The
+zip is a build product and is not committed.
+
+The submission string is the newest `results/submission-<date>.txt`:
+200 characters, one per row of `songs_to_classify.csv` in the file's
+order, 1 like and 0 dislike. `songs_to_classify.csv` is read for
+prediction only there, by the method `results/03-sweep.md` chose
+(`data.py` and `explore.py` check its contract and describe it, and
+nothing else opens it).
 
 ## About the training data
 
