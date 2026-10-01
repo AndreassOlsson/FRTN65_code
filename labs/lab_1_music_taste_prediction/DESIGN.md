@@ -55,3 +55,26 @@ Rules the tasks follow:
 4. ship: submission string, slides, the zip. Due 2026-10-04.
 5. second-csv: after the deadline, a second binary CSV problem through
    the same package, recording what had to change.
+
+## 2026-10-01: the second CSV, and where the package lives
+
+Stage 5 put OpenML credit-g through `songtaste` from
+`labs/second-csv-trial/`, importing it where it stands. Five edits,
+each lifting a value this lab had hard-wired into the spec or the
+protocol: `FeatureSpec.classes` (the label's values and names,
+positive last), explore reading them instead of assuming 0/1 and
+"songs", the categorical figure laid out for many worded levels,
+`Protocol.scorers` (a scorer of our own, for a cost matrix) and
+`Protocol.rope` with the figure's axis named from the protocol. Lab
+1's defaults reproduce its numbers unchanged.
+
+**The package stays here; the split is not yet earned.** The trial
+used it from this folder without friction, the hand-in zip packs only
+this folder, and the trial is not a consumer anyone will rerun. Two
+seams are open and named for whoever comes next: a decision stage
+between probability and call (sklearn's `TunedThresholdClassifierCV`),
+which credit-g's costs needed and this lab never did, and search
+spaces sized for this lab's 28 encoded columns. A third, living
+dataset that again only lifts values into the spec and protocol earns
+the move to a repo-level package. The diary is in the vault's record
+`record/05-second-csv.md`.
