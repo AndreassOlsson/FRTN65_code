@@ -8,3 +8,6 @@ data/credit-g.csv:
 
 test: data
 	uv run pytest -q
+
+explore: data
+	uv run python -m creditg.explore
