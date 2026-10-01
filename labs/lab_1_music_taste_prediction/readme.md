@@ -1,11 +1,22 @@
 # Lab 1 Music Taste Prediction
 
-## Structure
+## How to run
 
-- `data` holds the actual trainingdata, ignored by git. I placed a sample in `instructions` which is the shape that both training data `labs/lab_1_music_taste_prediction/data/training_data.csv` and test data `labs/lab_1_music_taste_prediction/data/songs_to_classify.csv` has. The sample is `labs/lab_1_music_taste_prediction/instructions/sample_data.csv`
-- `instructions` holds the the files given to us, with some code examples and the pdf instructions, and the sample data
-- our solution is implemented here in the root lab 1 directory.
-- the final handin will be bundled as a zip file once we are done.
+From this folder, with [uv](https://docs.astral.sh/uv/) installed:
+
+```sh
+uv sync        # the environment, from pyproject.toml and uv.lock
+make data      # fetches training_data.csv and songs_to_classify.csv into data/ (gitignored)
+make test      # the data contract against both files
+make explore   # writes figures/ and prints the tables behind results/01-exploration.md
+```
+
+`DESIGN.md` is the design the code follows. The package is
+`src/songtaste/` (`data.py` the contract, `explore.py` the exploration),
+`notebooks/` are the places to look at things, `results/` holds the
+written findings, `instructions/` the files given to us (the spec, the
+sample code, a sample of the data's shape). Data files are never
+committed. The final hand-in will be bundled as a zip once done.
 
 ## About the training data
 
