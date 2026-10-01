@@ -46,7 +46,6 @@ SIMPLICITY = (
     "boosting",
     "adaboost",
 )
-ROPE = 0.01  # a difference inside one point of accuracy is no difference
 
 
 def n_searched(name: str) -> int:
@@ -68,7 +67,7 @@ def paired(rows: pd.DataFrame, protocol: Protocol = PROTOCOL) -> pd.DataFrame:
     """Every method against the best non-dummy one on the same splits:
     the mean accuracy gap, its corrected error, the corrected t-test's
     two-sided p-value, and the posterior probabilities that the best is
-    better, that the two are practically equal (within ROPE), and that
+    better, that the two are practically equal (within the protocol's rope), and that
     the method is better."""
     wide = rows.pivot_table(index=["repeat", "fold"], columns="method", values=protocol.primary, sort=False)
     best = wide.drop(columns="dummy", errors="ignore").mean().idxmax()
@@ -87,8 +86,8 @@ def paired(rows: pd.DataFrame, protocol: Protocol = PROTOCOL) -> pd.DataFrame:
                 "gap": gap,
                 "se": se,
                 "p": float(2 * stats.t.sf(abs(gap / se), df=k - 1)),
-                "p_best_better": float(posterior.cdf(-ROPE)),
-                "p_rope": float(posterior.cdf(ROPE) - posterior.cdf(-ROPE)),
+                "p_best_better": float(posterior.cdf(-protocol.rope)),
+                "p_rope": float(posterior.cdf(protocol.rope) - posterior.cdf(-protocol.rope)),
             }
         )
     frame = pd.DataFrame(out).set_index("method")
@@ -127,10 +126,11 @@ def comparison(rows: pd.DataFrame, protocol: Protocol = PROTOCOL) -> pd.DataFram
 
 
 def plot_splits(rows: pd.DataFrame, path=None, protocol: Protocol = PROTOCOL):
-    """Per-split accuracy by method, best mean on top; one seaborn call."""
+    """Per-split primary score by method, best mean on top; one seaborn
+    call."""
     order = rows.groupby("method")[protocol.primary].mean().sort_values(ascending=False).index
     ax = sns.boxplot(rows, x=protocol.primary, y="method", order=order, color="0.85", showmeans=True)
-    ax.set(xlabel="accuracy on each of the 25 outer validation folds", ylabel="")
+    ax.set(xlabel=f"{protocol.primary} on each of the {protocol.n_outer} outer validation folds", ylabel="")
     ax.figure.tight_layout()
     if path is not None:
         ax.figure.savefig(path, dpi=150)

@@ -55,3 +55,33 @@ Rules the tasks follow:
 4. ship: submission string, slides, the zip. Due 2026-10-04.
 5. second-csv: after the deadline, a second binary CSV problem through
    the same package, recording what had to change.
+
+## 2026-10-01: the second CSV
+
+Task 5 put OpenML's credit-g through this package as it stood, from
+`labs/second-csv-trial/`, importing `songtaste` by a uv path source
+(LIF-181; the diary is the vault record `05-second-csv.md`).
+
+What held untouched: `features.py`, the registry's mechanism in
+`models.py`, `run_protocol` and `run_many`, the corrected errors, and
+`report`'s comparison, paired tests and decision rule. What had to
+change, each a parameter where lab 1 had a constant, none altering a
+lab 1 number: `FeatureSpec.classes` (the label's values and names, the
+positive class last) replacing explore's use of `LABELS`; explore's
+tables saying rows, its categorical figure wrapping; `Protocol.scorers`
+so a score need not be an sklearn name; `Protocol.rope` and the
+figure's axis taken from the protocol.
+
+**The package stays here.** The split into a repo-level package is
+not yet earned: the second consumer is a trial that exists to test it,
+the hand-in zip reproduces from this folder alone until the
+resubmission window closes (2026-10-23), and the trial left open which
+half is generic. A third dataset earns the move if it is real work
+(not a test) and shows three things: that the registry's search spaces
+can be shared (on credit-g, tuned on cost, kNN, the tree and RBF SVM
+chose the edges of lab 1's grids); whether a decision-threshold stage
+belongs in the protocol (no method beat rejecting every applicant at
+the default threshold); and how missing values enter the preprocessor
+(neither dataset had any). Until then the generic functions keep
+taking `spec` and `protocol` explicitly, and the lab-1 defaults in
+their signatures are a known hazard, failing loudly on foreign columns.

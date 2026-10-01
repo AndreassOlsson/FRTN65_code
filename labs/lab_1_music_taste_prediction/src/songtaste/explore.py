@@ -15,14 +15,14 @@ import pandas as pd
 import seaborn as sns
 from sklearn.metrics import roc_auc_score
 
-from songtaste.data import LABELS, SPEC, FeatureSpec, load_test, load_training
+from songtaste.data import SPEC, FeatureSpec, load_test, load_training
 
 FIGURES = Path(__file__).resolve().parents[2] / "figures"
 
 
 def _named(df: pd.DataFrame, spec: FeatureSpec) -> pd.DataFrame:
     """The label as words, so legends say like and dislike."""
-    return df.assign(**{spec.label: df[spec.label].map(LABELS)})
+    return df.assign(**{spec.label: df[spec.label].map(spec.classes)})
 
 
 def _long(df: pd.DataFrame, spec: FeatureSpec, columns) -> pd.DataFrame:
@@ -33,20 +33,21 @@ def _long(df: pd.DataFrame, spec: FeatureSpec, columns) -> pd.DataFrame:
 
 
 def class_balance_table(df: pd.DataFrame, spec: FeatureSpec) -> pd.DataFrame:
-    counts = df[spec.label].map(LABELS).value_counts()
-    return pd.DataFrame({"songs": counts, "share": (counts / counts.sum()).round(3)})
+    counts = df[spec.label].map(spec.classes).value_counts()
+    return pd.DataFrame({"rows": counts, "share": (counts / counts.sum()).round(3)})
 
 
 def separation(df: pd.DataFrame, spec: FeatureSpec) -> pd.DataFrame:
     """How far each numeric feature alone pulls the classes apart.
 
-    The univariate AUC is the chance that a random liked song scores
-    higher on the feature than a random disliked one: 0.5 is no
-    separation, and the distance from 0.5 is what matters (below 0.5
-    means liked songs score lower).
+    The univariate AUC is the chance that a random row of the positive
+    class (a liked song) scores higher on the feature than a random row
+    of the other: 0.5 is no separation, and the distance from 0.5 is
+    what matters (below 0.5 means the positive class scores lower).
     """
-    medians = df.groupby(spec.label)[list(spec.numeric)].median().T.rename(columns=LABELS)
-    auc = pd.Series({c: roc_auc_score(df[spec.label], df[c]) for c in spec.numeric}, name="auc")
+    medians = df.groupby(spec.label)[list(spec.numeric)].median().T.rename(columns=spec.classes)
+    positive = df[spec.label] == spec.positive
+    auc = pd.Series({c: roc_auc_score(positive, df[c]) for c in spec.numeric}, name="auc")
     out = medians.join(auc)
     out["strength"] = (out["auc"] - 0.5).abs()
     return out.sort_values("strength", ascending=False).round(3)
@@ -65,22 +66,24 @@ def outliers(df: pd.DataFrame, spec: FeatureSpec, k: float = 3.0) -> pd.DataFram
 
 
 def categorical_table(df: pd.DataFrame, spec: FeatureSpec) -> pd.DataFrame:
-    """For every value of every categorical: how many songs, and what
-    share of them he likes."""
+    """For every value of every categorical: how many rows, and what
+    share of them are of the positive class (for songs, liked)."""
+    share = f"{spec.classes[spec.positive]} share"
+    positive = (df[spec.label] == spec.positive).rename(share)
     rows = []
     for c in spec.categorical:
-        g = df.groupby(c)[spec.label].agg(songs="size", liked="mean")
+        g = positive.groupby(df[c]).agg(["size", "mean"]).set_axis(["rows", share], axis=1)
         rows.append(g.rename_axis("value").reset_index().assign(feature=c))
-    return pd.concat(rows)[["feature", "value", "songs", "liked"]].round(3).reset_index(drop=True)
+    return pd.concat(rows)[["feature", "value", "rows", share]].round(3).reset_index(drop=True)
 
 
 def duplicates(train: pd.DataFrame, test: pd.DataFrame, spec: FeatureSpec) -> dict:
     features = list(spec.features)
     return {
         "training rows that repeat another": int(train.duplicated(features).sum()),
-        "distinct songs repeated in training": int(train[train.duplicated(features, keep=False)].drop_duplicates(features).shape[0]),
+        "distinct rows repeated in training": int(train[train.duplicated(features, keep=False)].drop_duplicates(features).shape[0]),
         "test rows that repeat another": int(test.duplicated(features).sum()),
-        "distinct songs in both files": int(train[features].drop_duplicates().merge(test[features].drop_duplicates()).shape[0]),
+        "distinct rows in both files": int(train[features].drop_duplicates().merge(test[features].drop_duplicates()).shape[0]),
     }
 
 
@@ -88,7 +91,7 @@ def duplicates(train: pd.DataFrame, test: pd.DataFrame, spec: FeatureSpec) -> di
 
 
 def plot_class_balance(df: pd.DataFrame, spec: FeatureSpec):
-    return sns.catplot(_named(df, spec), x=spec.label, kind="count", order=list(LABELS.values()), height=3.5, aspect=1.1)
+    return sns.catplot(_named(df, spec), x=spec.label, kind="count", order=list(spec.classes.values()), height=3.5, aspect=1.1)
 
 
 def plot_numeric_by_label(df: pd.DataFrame, spec: FeatureSpec):
@@ -98,7 +101,7 @@ def plot_numeric_by_label(df: pd.DataFrame, spec: FeatureSpec):
         _long(df, spec, spec.numeric),
         x="value",
         hue=spec.label,
-        hue_order=list(LABELS.values()),
+        hue_order=list(spec.classes.values()),
         col="feature",
         col_wrap=5,
         kind="kde",
@@ -112,7 +115,9 @@ def plot_numeric_by_label(df: pd.DataFrame, spec: FeatureSpec):
 
 def plot_categorical_by_label(df: pd.DataFrame, spec: FeatureSpec):
     """The categoricals as proportions within each class: pandas counts
-    the share, seaborn draws one panel per feature with its own axis."""
+    the share, seaborn draws one panel per feature with its own axis.
+    Bars run sideways and panels wrap four to a row, so levels named in
+    words (credit-g's) stay readable and a dozen features stay a grid."""
     long = _long(df, spec, spec.categorical)
     shares = (
         long.groupby([spec.label, "feature"])["value"]
@@ -122,13 +127,16 @@ def plot_categorical_by_label(df: pd.DataFrame, spec: FeatureSpec):
     )
     return sns.catplot(
         shares,
-        x="value",
-        y="proportion",
+        x="proportion",
+        y="value",
         hue=spec.label,
-        hue_order=list(LABELS.values()),
+        hue_order=list(spec.classes.values()),
         col="feature",
+        col_wrap=4,
         kind="bar",
+        orient="h",
         height=3,
+        aspect=1.3,
         sharex=False,
         sharey=False,
     )
@@ -138,7 +146,8 @@ def plot_correlation(df: pd.DataFrame, spec: FeatureSpec, method: str = "spearma
     """Rank correlation between the numeric features and the label.
     Spearman, because duration, speechiness and instrumentalness are far
     from normal and a few extreme songs would drive Pearson."""
-    corr = df[list(spec.numeric) + [spec.label]].corr(method=method)
+    positive = (df[spec.label] == spec.positive).astype(int)
+    corr = df[list(spec.numeric)].assign(**{spec.label: positive}).corr(method=method)
     grid = sns.clustermap(corr, annot=True, fmt=".2f", cmap="vlag", center=0, vmin=-1, vmax=1, figsize=(9, 9), annot_kws={"size": 7})
     return grid
 

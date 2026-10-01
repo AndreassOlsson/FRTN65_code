@@ -1,0 +1,26 @@
+[project]
+name = "creditg"
+version = "0.1.0"
+description = "A second binary tabular CSV (OpenML credit-g) through lab 1's songtaste package, to test which of its seams are real"
+readme = "readme.md"
+requires-python = ">=3.11"
+dependencies = [
+    "songtaste",
+]
+
+[tool.uv.sources]
+# lab 1's package, imported where it stands; nothing of it is copied here
+songtaste = { path = "../lab_1_music_taste_prediction", editable = true }
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/creditg"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
