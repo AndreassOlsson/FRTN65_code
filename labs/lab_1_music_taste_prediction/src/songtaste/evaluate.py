@@ -48,6 +48,8 @@ class Protocol:
     primary: str = "accuracy"
     scores: tuple[str, ...] = ("accuracy", "balanced_accuracy", "roc_auc")
     drop_duplicates: bool = True
+    # a gap in the primary score inside this is no difference (report.paired)
+    rope: float = 0.01
     scorers: Mapping[str, object] = field(default_factory=dict)
 
     def scorer(self, name: str):
