@@ -115,7 +115,9 @@ def plot_numeric_by_label(df: pd.DataFrame, spec: FeatureSpec):
 
 def plot_categorical_by_label(df: pd.DataFrame, spec: FeatureSpec):
     """The categoricals as proportions within each class: pandas counts
-    the share, seaborn draws one panel per feature with its own axis."""
+    the share, seaborn draws one panel per feature with its own axis.
+    Bars run sideways and panels wrap four to a row, so levels named in
+    words (credit-g's) stay readable and a dozen features stay a grid."""
     long = _long(df, spec, spec.categorical)
     shares = (
         long.groupby([spec.label, "feature"])["value"]
@@ -125,13 +127,16 @@ def plot_categorical_by_label(df: pd.DataFrame, spec: FeatureSpec):
     )
     return sns.catplot(
         shares,
-        x="value",
-        y="proportion",
+        x="proportion",
+        y="value",
         hue=spec.label,
         hue_order=list(spec.classes.values()),
         col="feature",
+        col_wrap=4,
         kind="bar",
+        orient="h",
         height=3,
+        aspect=1.3,
         sharex=False,
         sharey=False,
     )
