@@ -13,7 +13,8 @@ baselines and writes `results/02-baselines.csv`.
 
 import json
 import sys
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
@@ -34,7 +35,11 @@ BASELINES = ("dummy", "logreg", "knn")
 
 @dataclass(frozen=True)
 class Protocol:
-    """protocol.md's numbers. Change one only by a dated section there."""
+    """protocol.md's numbers. Change one only by a dated section there.
+
+    A score is named by an sklearn scorer string, or by a key of
+    `scorers` when no built-in scorer measures it (a cost matrix, say);
+    either way, higher is better."""
 
     seed: int = 65
     n_splits: int = 5
@@ -43,6 +48,10 @@ class Protocol:
     primary: str = "accuracy"
     scores: tuple[str, ...] = ("accuracy", "balanced_accuracy", "roc_auc")
     drop_duplicates: bool = True
+    scorers: Mapping[str, object] = field(default_factory=dict)
+
+    def scorer(self, name: str):
+        return self.scorers.get(name, name)
 
     def outer_cv(self) -> RepeatedStratifiedKFold:
         return RepeatedStratifiedKFold(n_splits=self.n_splits, n_repeats=self.n_repeats, random_state=self.seed)
@@ -78,7 +87,7 @@ def estimator(name: str, protocol: Protocol = PROTOCOL, spec: FeatureSpec = SPEC
     pipe = method.pipeline(spec, protocol.seed)
     if not method.space:
         return pipe
-    return GridSearchCV(pipe, method.space, scoring=protocol.primary, cv=protocol.inner_cv(), refit=True)
+    return GridSearchCV(pipe, method.space, scoring=protocol.scorer(protocol.primary), cv=protocol.inner_cv(), refit=True)
 
 
 def _chosen(fitted) -> str:
@@ -100,7 +109,7 @@ def run_protocol(
         X,
         y,
         cv=protocol.outer_cv(),
-        scoring=list(protocol.scores),
+        scoring={score: protocol.scorer(score) for score in protocol.scores},
         return_estimator=True,
         error_score="raise",
     )

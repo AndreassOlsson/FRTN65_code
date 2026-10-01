@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.metrics import make_scorer
 from sklearn.pipeline import Pipeline
 
 from songtaste import evaluate, models
@@ -42,6 +43,13 @@ def test_other_seed_other_splits(xy):
     a = run_protocol("logreg", *xy, protocol=QUICK)
     b = run_protocol("logreg", *xy, protocol=Protocol(n_repeats=2, seed=1))
     assert not np.allclose(a["accuracy"], b["accuracy"])
+
+
+def test_a_scorer_of_our_own_beside_the_builtins(xy):
+    error = make_scorer(lambda y, pred: float((y != pred).mean()), greater_is_better=False)
+    p = Protocol(n_repeats=1, primary="neg_error", scores=("neg_error", "accuracy"), scorers={"neg_error": error})
+    rows = run_protocol("logreg", *xy, protocol=p)
+    np.testing.assert_allclose(rows["neg_error"], rows["accuracy"] - 1)
 
 
 class Spy(ClassifierMixin, BaseEstimator):
