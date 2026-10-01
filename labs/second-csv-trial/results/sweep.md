@@ -42,8 +42,9 @@ the decision is here to show the stage works on a second dataset.
   can do.
 - **The ranking on cost is not the ranking on accuracy.** The forest
   has the best accuracy and AUC and is ninth on cost; QDA is mid-table
-  on accuracy and first on cost. QDA's per-class covariances make it
-  call more applicants bad, which is what the cost matrix pays for.
+  on accuracy and first on cost. Lower accuracy at lower cost can only
+  mean it trades costly misses (bad called good, 5) for cheap false
+  alarms (good called bad, 1), which is what the cost matrix pays for.
   Deciding on accuracy here would have chosen the wrong thing; on lab
   1, where the metric was accuracy, the question never came up.
 - **Grids tuned for lab 1 hit their edges.** Tuning on cost, kNN chose
