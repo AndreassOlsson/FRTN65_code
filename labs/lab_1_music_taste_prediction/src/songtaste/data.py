@@ -13,6 +13,7 @@ from that table: the files call the duration column `duration`, not
 `duration_ms`. The unit is still milliseconds.
 """
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -37,15 +38,24 @@ class FeatureSpec:
     than points on a scale, and 1 is what Spotify reports when it could
     not settle a meter. So it is typed categorical; the exploration
     finding argues it out.
+
+    `classes` maps each label value to the word figures and tables use
+    for it, negative class first and positive last; the positive class
+    is the one shares and AUCs are measured towards.
     """
 
     numeric: tuple[str, ...]
     categorical: tuple[str, ...]
     label: str
+    classes: Mapping[object, str]
 
     @property
     def features(self) -> tuple[str, ...]:
         return self.numeric + self.categorical
+
+    @property
+    def positive(self):
+        return list(self.classes)[-1]
 
     def kind(self, column: str) -> str:
         if column in self.numeric:
@@ -56,6 +66,8 @@ class FeatureSpec:
             return "label"
         raise KeyError(f"{column!r} is not in the spec")
 
+
+LABELS = {0: "dislike", 1: "like"}
 
 SPEC = FeatureSpec(
     numeric=(
@@ -72,9 +84,8 @@ SPEC = FeatureSpec(
     ),
     categorical=("key", "mode", "time_signature"),
     label="label",
+    classes=LABELS,
 )
-
-LABELS = {0: "dislike", 1: "like"}
 
 
 def _unit() -> pa.Column:

@@ -57,6 +57,10 @@ LEVELS = {
     "foreign_worker": ["yes", "no"],
 }
 
+# the bank's question is which applicants default, so bad is the
+# positive class, last, the one shares and AUCs are measured towards
+LABELS = {"good": "good", "bad": "bad"}
+
 # small integer counts and 1-4 bands (installment as a share of income,
 # years at the residence) are kept numeric: their order means something
 # and a scaled number carries it, where one-hot would throw it away
@@ -72,9 +76,8 @@ SPEC = FeatureSpec(
     ),
     categorical=tuple(LEVELS),
     label="class",
+    classes=LABELS,
 )
-
-LABELS = {"bad": "bad", "good": "good"}
 
 
 def _count(lo: int, hi: int) -> pa.Column:
