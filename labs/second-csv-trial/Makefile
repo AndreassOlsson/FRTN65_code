@@ -11,3 +11,7 @@ test: data
 
 explore: data
 	uv run python -m creditg.explore
+
+# every registry method on the same 25 splits; about an hour on 4 cores
+sweep: data
+	uv run python -m creditg.sweep
