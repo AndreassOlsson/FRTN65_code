@@ -1,0 +1,20 @@
+# Environment for the lecture notebooks under lectures/ (not the labs: each
+# lab carries its own pyproject.toml). Python 3.11.
+# Pins start from the versions that ran lectures/Lecture04/kmeans.ipynb
+# (LIF-152); scikit-learn<1.7 because that notebook uses
+# LogisticRegression(multi_class="ovr"), removed in 1.7.
+numpy==2.4.6
+scipy==1.17.1
+scikit-learn==1.6.1
+joblib==1.6.0
+threadpoolctl==3.7.0
+pandas
+matplotlib
+statsmodels
+graphviz
+# to run a notebook headlessly
+nbconvert==7.17.1
+nbclient==0.11.0
+nbformat==5.11.1
+ipykernel==7.4.0
+jupyter_client==8.10.0
