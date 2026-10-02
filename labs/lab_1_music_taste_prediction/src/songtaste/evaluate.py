@@ -83,9 +83,10 @@ def training_xy(protocol: Protocol = PROTOCOL, spec: FeatureSpec = SPEC) -> tupl
     return df[list(spec.features)], df[spec.label]
 
 
-def estimator(name: str, protocol: Protocol = PROTOCOL, spec: FeatureSpec = SPEC):
-    """The method's pipeline, inside a GridSearchCV when it has a space."""
-    method = models.get(name)
+def estimator(name: str | models.Method, protocol: Protocol = PROTOCOL, spec: FeatureSpec = SPEC):
+    """The method's pipeline, inside a GridSearchCV when it has a space.
+    `name` is a registry name, or a `Method` built elsewhere (a variant)."""
+    method = name if isinstance(name, models.Method) else models.get(name)
     pipe = method.pipeline(spec, protocol.seed)
     if not method.space:
         return pipe
@@ -101,13 +102,21 @@ def _chosen(fitted) -> str:
 
 
 def run_protocol(
-    name: str, X: pd.DataFrame, y: pd.Series, protocol: Protocol = PROTOCOL, spec: FeatureSpec = SPEC
+    name: str,
+    X: pd.DataFrame,
+    y: pd.Series,
+    protocol: Protocol = PROTOCOL,
+    spec: FeatureSpec = SPEC,
+    method: models.Method | None = None,
 ) -> pd.DataFrame:
     """One method through the outer folds: one row per split, with
     method, repeat, fold, each score, the chosen hyperparameters and
-    the fit time (seconds, including the inner search)."""
+    the fit time (seconds, including the inner search). `method`, when
+    given, is scored in place of the registry entry and `name` labels
+    the rows (how `songtaste.variants` runs a variant through the same
+    protocol)."""
     cv = cross_validate(
-        estimator(name, protocol, spec),
+        estimator(method if method is not None else name, protocol, spec),
         X,
         y,
         cv=protocol.outer_cv(),

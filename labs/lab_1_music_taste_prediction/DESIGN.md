@@ -85,3 +85,25 @@ the default threshold); and how missing values enter the preprocessor
 (neither dataset had any). Until then the generic functions keep
 taking `spec` and `protocol` explicitly, and the lab-1 defaults in
 their signatures are a known hazard, failing loudly on foreign columns.
+
+## 2026-10-02: the variants layer
+
+His exploration (`exploration.ipynb`) asked two things the stages above
+do not answer: which features are robustly important across methods,
+and what each family is sensitive to (regularisation, scaling, feature
+engineering, kernels). Added as a layer over the package, not a second
+one: `variants.py` builds a `Method` from a registry entry plus what
+differs (scaler, log1p columns, encoder, feature subset, interactions,
+estimator parameters, grid), so `evaluate.run_protocol` scores a variant
+as it scores a method; `diagnostics.py` wraps sklearn's
+`validation_curve`, `learning_curve`, `permutation_importance` and
+`cross_val_predict` with the spec and protocol passed in;
+`explore.feature_screen` is his single-and-pair tree screen with equal
+capacity for singles and pairs and a shuffled-feature null. Two
+protocols, declared in `protocol.md` (2026-10-02): a screen at two
+repeats for the wide grid, promotion to the full protocol for the best
+variant of a family that beats its base by more than the error of the
+gap. `features.build_preprocessor` gained three optional arguments for
+this and is unchanged at its defaults; `run_protocol` takes a `Method`
+beside a name. The notebook `04_variants.ipynb` runs a family at a time
+and every run lands in `results/04-variants.csv`.
