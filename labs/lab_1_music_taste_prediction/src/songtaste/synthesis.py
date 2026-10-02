@@ -20,8 +20,8 @@ Every table behind a figure is written beside it in
 `figures/04-synthesis/` as a CSV, and a step whose CSV is there is read
 back, not refitted, so `python -m songtaste.synthesis` (`make
 synthesis`) reprints everything in seconds once it has run. The first
-run takes about an hour on 4 cores, most of it the forest's searched
-learning curve.
+run takes about 20 minutes on 4 cores, most of it the searched
+learning curves and permutation importances.
 """
 
 import argparse
@@ -31,6 +31,7 @@ import matplotlib
 
 matplotlib.use("Agg")
 
+import matplotlib.pyplot as plt
 import pandas as pd
 
 from songtaste import diagnostics, evaluate, explore, report, variants
@@ -88,6 +89,7 @@ def feature_screen() -> dict:
     screen = {"singles": singles.set_index("feature"), "pairs": pairs, "null": null["gain"]}
     fig = explore.plot_feature_screen(screen)
     fig.savefig(FIGURES / "feature-screen.png", dpi=150)
+    plt.close(fig)
     return screen
 
 
@@ -95,11 +97,10 @@ def permutation() -> pd.DataFrame:
     X, y = evaluate.training_xy(SCREEN)
     table = _cached("permutation", lambda: diagnostics.permutation_table(SIX, X, y, SCREEN, n_repeats=10, tuned=True))
     matrix = diagnostics.importance_matrix(table)[list(SIX)]
-    ax = diagnostics.plot_importance_matrix(matrix)
-    ax.figure.set_size_inches(9, 6)
-    ax.figure.tight_layout()
-    ax.figure.savefig(FIGURES / "permutation-importance.png", dpi=150)
-    ax.figure.clf()
+    fig, ax = plt.subplots(figsize=(9, 6), constrained_layout=True)
+    diagnostics.plot_importance_matrix(matrix, ax=ax)
+    fig.savefig(FIGURES / "permutation-importance.png", dpi=150)
+    plt.close(fig)
     return matrix
 
 
@@ -112,8 +113,9 @@ def learning_curves() -> pd.DataFrame:
     table = _cached("learning-curves", run)
     fig = diagnostics.plot_learning_curves([table[table["method"] == n] for n in SIX], ncols=3)
     handles, labels = fig.axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="lower right")
+    fig.legend(handles, labels, loc="outside upper right")
     fig.savefig(FIGURES / "learning-curves.png", dpi=150)
+    plt.close(fig)
     return table
 
 
@@ -141,7 +143,10 @@ def main(argv=None) -> None:
             promote()
         union = union_rows()
         if "union" in steps:
+            fig, ax = plt.subplots(figsize=(6.4, 4.8))
+            plt.sca(ax)
             report.plot_splits(union, FIGURES / "accuracy-by-split.png")
+            plt.close(fig)
             print(report.comparison(union).round(3).to_string(), end="\n\n")
             print(report.paired(union).round(4).to_string(), end="\n\n")
             choice, band = report.decide(union)

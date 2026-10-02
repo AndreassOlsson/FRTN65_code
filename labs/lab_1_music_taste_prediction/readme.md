@@ -13,7 +13,7 @@ make baselines # dummy, logistic regression and kNN through the protocol: result
 make sweep     # every other method on the same splits: results/03-sweep.csv; about 36 minutes on 4 cores
 make predict   # refits the chosen method and writes results/submission-<date>.txt; about a minute
 make variants FAMILY=linear   # the variants stage under the screening protocol, one family (linear, knn, svm, trees)
-make synthesis # the stage closed: the promoted variant under the full protocol, the rule on the union, the cross-family figures; about an hour the first time
+make synthesis # the stage closed: the promoted variant under the full protocol, the rule on the union, the cross-family figures; about 20 minutes the first time
 ```
 
 So `uv sync && make data && make test && make sweep && make predict`

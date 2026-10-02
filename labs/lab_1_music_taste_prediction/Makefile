@@ -31,7 +31,7 @@ variants: data
 
 # the variants stage closed: the promoted variants under the full protocol
 # (results/04-variants-full.csv), the rule on the union with 03-sweep, and the
-# cross-family figures and tables in figures/04-synthesis/; about an hour the
+# cross-family figures and tables in figures/04-synthesis/; about 20 minutes the
 # first time, seconds after (each step reads back its CSV)
 synthesis: data
 	MPLBACKEND=Agg uv run python -m songtaste.synthesis
