@@ -155,7 +155,8 @@ instrumental at up to 0.97), so after robust scaling it has variance
 about 12,000 against 1 to 2 for everything else, and `scale`'s gamma
 on that pipeline is 0.00007. Every distance the kernel measures is the
 instrumentalness distance, and the other twelve features are close to
-invisible: that is the five points it loses, on every split, and why
+invisible: that is the five points it loses on average (between 1.4
+and 8.8 per split, and a loss on every one of the ten), and why
 permutation importance on the standard pipeline ranks instrumentalness
 sixth (0.005) while robust scaling made it the only feature. Quantile
 scaling is the opposite cure, ranks mapped to a normal shape so no
