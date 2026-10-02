@@ -354,7 +354,11 @@ def run_variants(
 def summarize(rows: pd.DataFrame, protocol: Protocol = SCREEN) -> pd.DataFrame:
     """Per variant: mean and corrected error of each score, and the gap
     to its own base variant on the same splits (positive means the
-    variant helped)."""
+    variant helped). Only rows run under `protocol` are read, so a
+    screen table never mixes in full-protocol rows (04-variants-full.csv
+    sits beside the screening files and `load_all` reads it too)."""
+    if "n_repeats" in rows:
+        rows = rows[rows["n_repeats"] == protocol.n_repeats]
     table = evaluate.summarize(rows.drop(columns="method").rename(columns={"variant": "method"}), protocol).rename_axis("variant")
     table.columns = [f"{score} {stat}" for score, stat in table.columns]
     meta = rows.groupby("variant")[["family", "base"]].first()

@@ -1,0 +1,14 @@
+feature,roc_auc
+speechiness,0.769000
+loudness,0.753000
+acousticness,0.750000
+energy,0.722000
+danceability,0.706000
+key,0.599000
+duration,0.594000
+valence,0.571000
+liveness,0.560000
+instrumentalness,0.559000
+time_signature,0.551000
+mode,0.537000
+tempo,0.509000

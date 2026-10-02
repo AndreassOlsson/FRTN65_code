@@ -3,7 +3,7 @@ URL := http://handsonml.control.lth.se/data
 FILES := data/training_data.csv data/songs_to_classify.csv
 FAMILY ?= linear
 
-.PHONY: data test explore baselines sweep variants predict handin clean-data
+.PHONY: data test explore baselines sweep variants synthesis predict handin clean-data
 
 data: $(FILES)
 
@@ -28,6 +28,13 @@ sweep: data
 # (linear, knn, svm, trees); appends to results/04-variants.csv, skips what is there
 variants: data
 	uv run python -m songtaste.variants --family $(FAMILY)
+
+# the variants stage closed: the promoted variants under the full protocol
+# (results/04-variants-full.csv), the rule on the union with 03-sweep, and the
+# cross-family figures and tables in figures/04-synthesis/; about 20 minutes the
+# first time, seconds after (each step reads back its CSV)
+synthesis: data
+	MPLBACKEND=Agg uv run python -m songtaste.synthesis
 
 # the one read of songs_to_classify.csv: refit the method 03-sweep.md chose,
 # write results/submission-<date>.txt and print it; about a minute

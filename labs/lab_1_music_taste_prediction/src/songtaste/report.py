@@ -49,8 +49,24 @@ SIMPLICITY = (
 
 
 def n_searched(name: str) -> int:
-    """How many hyperparameters the protocol tunes for a method."""
-    return len(models.get(name).space)
+    """How many hyperparameters the protocol tunes for a method, or for a
+    promoted variant, from its own grid (protocol.md, 2026-10-02)."""
+    if name in models.REGISTRY:
+        return len(models.get(name).space)
+    from songtaste import variants
+
+    return len(variants.get(name).method().space)
+
+
+def simplicity_rank(name: str) -> float:
+    """A method's place in SIMPLICITY. A promoted variant takes its base
+    method's place, just after it: it is that method with a knob turned
+    (protocol.md, 2026-10-02 and 2026-10-03)."""
+    if name in SIMPLICITY:
+        return float(SIMPLICITY.index(name))
+    from songtaste import variants
+
+    return SIMPLICITY.index(variants.get(name).base) + 0.5
 
 
 def sweep_rows(protocol: Protocol = PROTOCOL) -> pd.DataFrame:
@@ -104,7 +120,7 @@ def decide(rows: pd.DataFrame, protocol: Protocol = PROTOCOL) -> tuple[str, pd.D
     table = paired(rows, protocol).drop(index="dummy", errors="ignore")
     band = table[-table["gap"] <= table["se"]].copy()
     band["searched"] = [n_searched(n) for n in band.index]
-    band["order"] = [SIMPLICITY.index(n) for n in band.index]
+    band["order"] = [simplicity_rank(n) for n in band.index]
     band = band.sort_values(["searched", "order"])
     return band.index[0], band.drop(columns="order")
 

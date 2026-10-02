@@ -107,3 +107,25 @@ gap. `features.build_preprocessor` gained three optional arguments for
 this and is unchanged at its defaults; `run_protocol` takes a `Method`
 beside a name. The notebook `04_variants.ipynb` runs a family at a time
 and every run lands in `results/04-variants.csv`.
+
+## 2026-10-02: what the variants stage found about the layer
+
+The layer held: 44 variants in four families went through
+`run_protocol` as methods, the diagnostics needed no plotting of their
+own, and four sessions ran the families at once because each wrote its
+own `04-variants-<family>.csv`. That file split had one cost, found at
+the close: `load_all` globs every `04-variants*.csv`, so the full
+protocol's rows for the promoted variant landed in the same read as the
+screen's, and `summarize` averaged them together until it was made to
+read only its own protocol's `n_repeats`. One results file per protocol
+and family, tagged, is the shape to keep; the reader must filter by the
+tag, not trust the file name. The decision rule also needed two lines to
+take a variant (`report.n_searched` from the variant's grid,
+`report.simplicity_rank` at its base's place), which is the point where
+a variant stops being a question and becomes a method. A fifth family
+needs only its `Variant` entries and its name in `FAMILIES`; what it
+would not get for free is a place in `SIMPLICITY` for a base method
+the protocol never named, and the promotion rule's blind spots (one
+variant per family, gaps read against the family's own base) are the
+ones the synthesis lists. The stage moved the choice from rf to
+`knn_top4` (`results/protocol.md`, the section closing the stage).

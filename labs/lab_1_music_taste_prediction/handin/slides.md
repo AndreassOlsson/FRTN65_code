@@ -10,10 +10,11 @@ Figures are the ones the code drew, read from figures/, never redrawn.
 # Predicting which songs Andreas likes
 ## FRTN65 Lab 1, Andreas Olsson, October 2026
 > 736 | labelled songs after dropping duplicates
-> 11 | methods through one protocol
-> 0.830 | cross-validated accuracy of the chosen random forest
+> 11 | methods through one protocol, then 44 variants of them
+> 0.830 | random forest, the best mean
+> 0.826 | kNN on four features, level with it and chosen by the rule
 
-Note: Ten minutes. The short version: eleven methods, one evaluation protocol written before any result, and a random forest that wins by a small but consistent margin.
+Note: Ten minutes. The short version: eleven methods and 44 variants, one evaluation protocol written before any result, and at the top two models that are level on accuracy: a random forest and a kNN on the four strong features. The rule written in advance picks the simpler one.
 
 ---
 
@@ -59,13 +60,38 @@ Note: Bagging versus random forest is a controlled pair: the only difference is 
 
 # (2) How the inputs went in
 ![](../figures/01-categorical-by-label.png)
-- All 13 features used, none dropped: the weak ones cost little and the forest ignores noise well
+- All 13 features in every method of the comparison; the variants then tried subsets, and only the distance and covariance methods gained from dropping to the four strong ones
 - 10 numeric features, standardised
 - key, mode and time_signature treated as qualitative and one-hot encoded: key 11 is not "more" than key 0, and meters are distinct, not points on a scale
 - 14 exact duplicate rows dropped before any split, so a song cannot sit in its own validation fold
 - Scaling and encoding live inside each model's pipeline, learned on the training part only
 
 Note: Trees do not need the scaler, but it changes no split, so every method keeps one pipeline shape.
+
+---
+
+# (2) What the knobs did, family by family
+| family | moved it beyond the noise (screen, gap ± error) | did nothing |
+|---|---|---|
+| Logistic regression | nothing; only C, which the search already finds | L1, elastic net, log, quantile, grouped or dropped categoricals |
+| LDA, QDA | fewer parameters: shrinkage +0.012 ± 0.008, QDA on 4 features +0.015 ± 0.009 | QDA without the categoricals |
+| kNN | 4 strong features only +0.020 ± 0.018 (promoted); robust scaling -0.043 ± 0.017 | log, Manhattan |
+| SVM | robust scaling -0.048 ± 0.015 | polynomial kernel, log, 4 features against its own base |
+| Trees | averaging: bagging +0.027 ± 0.015 over one tree, the forest +0.0095 ± 0.0066 over bagging | fewer features, grouped levels, depth limits, slower boosting |
+
+Note: Screen numbers, ten splits, each variant against its own base on the same splits. Two lessons cross families. kNN and the RBF SVM measure distances, so they are the ones the input space matters to: robust scaling broke both, because instrumentalness is so spiked at zero that its interquartile range is nothing and dividing by it makes that one feature the whole distance. And the covariance methods and kNN gained from fewer features, while the line and the forest did not care.
+
+---
+
+# (2) Which features matter, across six methods
+![](../figures/04-synthesis/permutation-importance.png)
+- Drop in held-out accuracy when one feature is shuffled, each method tuned inside each of 10 splits
+- Speechiness is first for all six, worth 0.09 to 0.11 to every one of them
+- Acousticness is second-tier for all six; loudness and energy too, but they are twins, so methods split the credit
+- Tempo, key, mode, meter and valence are worth nothing to any method
+- Weak features matter only to kNN, which is being misled by them, not informed
+
+Note: Robust across models means the same answer from a line, a covariance, a distance, a kernel and two kinds of tree ensemble. Permutation importance undercounts a feature with a correlated twin: LDA barely uses loudness because energy and acousticness carry the same axis for it.
 
 ---
 
@@ -97,6 +123,7 @@ Note: This is why the comparison is paired. Read naively, everything above LDA l
 | method | accuracy | gap to rf | corrected error | p | rf wins of 25 |
 |---|---|---|---|---|---|
 | Random forest | 0.830 | | | | |
+| kNN, 4 features | 0.826 | -0.005 | 0.014 | 0.75 | 14 |
 | Bagging | 0.820 | -0.011 | 0.007 | 0.15 | 18 |
 | Gradient boosting | 0.819 | -0.011 | 0.009 | 0.24 | 19 |
 | Logistic regression | 0.814 | -0.016 | 0.015 | 0.29 | 18 |
@@ -106,38 +133,52 @@ Note: This is why the comparison is paired. Read naively, everything above LDA l
 | Decision tree | 0.790 | -0.041 | 0.017 | 0.03 | 22 |
 | QDA | 0.783 | -0.047 | 0.020 | 0.02 | 22 |
 
-Note: p is the corrected resampled t-test. AdaBoost (0.808) and linear SVM (0.807) sit between RBF SVM and LDA and are left off for space; the full table is in results/03-sweep.md. Four methods miss the one-error band by a hair.
+Note: p is the corrected resampled t-test. The kNN on four features is the one variant the screen promoted, run here under the full protocol on the same 25 splits; it is the only method inside the one-error band. AdaBoost (0.808) and linear SVM (0.807) sit between RBF SVM and LDA and are left off for space; the full tables are in results/03-sweep.md and results/04-variants.md.
 
 ---
 
-# (4) Conclusion: the random forest, read as bias and variance
-> 0.830 | random forest, ± 0.014 over 25 splits
-- A line captures the main axis; logistic regression reaches 0.814 with heavy shrinkage
-- What a line misses are thresholds and interactions (every song under -20 dB is liked), which trees find
-- One tree finds them but pays in variance (0.790); averaging 300 trees keeps the low bias and pays the variance down (bagging 0.820)
-- Random feature subsets decorrelate the trees and add one more point (0.830)
-- kNN and QDA were last: distances mixed with one-hot columns, and too many covariance parameters for 240 dislikes
+# (3) The decision rule under its neighbours
+| rule | qualifying | chosen |
+|---|---|---|
+| within 1 corrected error of the best (written first) | kNN on 4 features, random forest | kNN on 4 features |
+| within the rope, gap under one point | kNN on 4 features, random forest | kNN on 4 features |
+| within 2 corrected errors | 8 methods | logistic regression |
+| t-test not significant at 5% | the same 8 | logistic regression |
+| best mean, no band | random forest | random forest |
 
-Note: Boosting reaches the same place from the other side: low-variance learners, bias removed step by step. It ties with bagging.
+Note: Same 25 splits, the eleven methods plus the promoted variant. Ties go to the fewest tuned parameters, then the simpler method; both top models tune two, and kNN is the simpler. Three answers from five reasonable rules is the honest picture: the top eight are within about two errors of each other. Before the variants the strict rule picked the forest alone; the rule did not change, the table got one row longer.
+
+---
+
+# (4) Conclusion: two models level at the top, read as bias and variance
+> 0.830 | random forest
+> 0.826 | kNN on speechiness, loudness, acousticness, energy
+- A line captures the main axis, loud versus acoustic, and nothing we turned moved logistic regression past 0.815
+- Trees find the thresholds a line misses, and pay in variance; averaging 300 of them, with random feature subsets, pays it down
+- kNN was last of the real methods until its distance was measured in the four features that matter; then its search settled and it gained three points
+- On the 15 splits the variant screen never saw, the four-feature kNN is 0.001 behind the forest
+- The forest ranks songs better (ROC AUC 0.907 against 0.879); the rule decides on accuracy, as the leaderboard does
+
+Note: The rule picks the four-feature kNN: level with the forest on accuracy, the same number of tuned parameters, and a model you can explain in a sentence, a song is liked when the seven to eleven songs nearest to it on those four features mostly were.
 
 ---
 
 # (4) How sure: a small edge, honestly sized
-> ~3 | songs in 200: the forest's expected edge over logistic regression
+> ~1 | song in 200: the forest's expected edge over the four-feature kNN
 > 0.80 to 0.86 | what to expect on the 200 hidden songs
-- Only the forest falls inside the one-error band, so the rule picks it outright
-- A looser rule, "not significantly worse at 5%", would hold seven methods and pick logistic regression
+- The two are within a point of each other with probability about one half, and the forest wins 14 of the 25 splits
+- A looser rule, "not significantly worse at 5%", would hold eight methods and pick logistic regression
 - The strictness was fixed before the numbers, which is what makes this a choice and not a sweep
-- First on accuracy, balanced accuracy and AUC alike, so the win is not bought by leaning on "like"
+- The variant was picked on 10 of the 25 splits; the other 15 agree with them, so the promotion did not manufacture it
 
-Note: If I had to defend logistic regression instead, I could: it is within noise. The protocol said in advance which end of that trade-off I would take.
+Note: If I had to defend the forest or logistic regression instead, I could: all three are within noise. The protocol said in advance which end of that trade-off I would take.
 
 ---
 
 # Production: one refit, one read of the test file
-> 200 | songs predicted, 123 liked
+> 200 | songs predicted by the random forest, 123 liked
+- The submitted string was made by the forest on 2026-10-01, before the variants; the four-feature kNN joined the comparison after it
 - Refit on all 736 songs with the same grid search: 300 trees, 25% of features per split, at least 3 songs per leaf
-- The inner search scored that setting at 0.837; the setting barely matters, the grid's surface was flat across the sweep
 - songs_to_classify.csv read once, by this model, after the decision
 - The string is in results/submission-2026-10-01.txt, one character per test song in file order
 - 4 test songs also appear in the training file; the forest predicts their known labels
@@ -148,7 +189,7 @@ Note: make predict reproduces the string byte for byte.
 
 # The code: a small package, thin notebooks
 - `src/songtaste/` holds the mechanism as one module per stage (data contract, features, protocol, comparison, prediction), each standing on scikit-learn, pandera and seaborn rather than code of my own, and `tests/` checks the contract, the protocol, the rule and the string.
-- The notebooks are where I looked at things and `results/` is where every number in these slides is written down, so `uv sync && make data && make test && make sweep && make predict` reproduces all of it.
+- The notebooks are where I looked at things and `results/` is where every number in these slides is written down, so `uv sync && make data && make test && make sweep && make synthesis && make predict` reproduces all of it.
 - AI use, per the lab's policy: the package, tests and first drafts of the written results and these slides were produced with Claude (Anthropic) coding agents, working from a plan and a design I set and approved.
 
-Note: The sweep takes about 36 minutes on four cores; everything else runs in a minute or two.
+Note: The sweep takes about 36 minutes on four cores, the four variant families and their synthesis about an hour and a quarter more; everything else runs in a minute or two.
