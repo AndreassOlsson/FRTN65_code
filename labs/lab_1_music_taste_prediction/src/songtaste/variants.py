@@ -280,10 +280,28 @@ def catalogue() -> pd.DataFrame:
     return pd.DataFrame(rows).set_index("variant")
 
 
+def family_file(family: str) -> Path:
+    """Where a family's screening rows go when run by family (the CLI,
+    the pipeline's per-family tasks): one file per family, so parallel
+    runs never write the same file."""
+    return RESULTS / f"04-variants-{family}.csv"
+
+
 def load_results(path: Path = VARIANTS_FILE) -> pd.DataFrame:
     if not Path(path).exists():
         return pd.DataFrame()
     return pd.read_csv(path)
+
+
+def load_all() -> pd.DataFrame:
+    """Every variants results file in results/ (`04-variants*.csv`),
+    concatenated, the latest row kept where a variant and protocol
+    appear in more than one file."""
+    files = sorted(RESULTS.glob("04-variants*.csv"))
+    if not files:
+        return pd.DataFrame()
+    rows = pd.concat([pd.read_csv(f) for f in files], ignore_index=True)
+    return rows.drop_duplicates(subset=["variant", "n_repeats", "repeat", "fold"], keep="last").reset_index(drop=True)
 
 
 def run_variants(
@@ -371,6 +389,7 @@ def main(argv=None) -> None:
     ap.add_argument("--all", action="store_true")
     ap.add_argument("--full", action="store_true", help="the full protocol instead of the screen")
     ap.add_argument("--rerun", action="store_true")
+    ap.add_argument("--path", help="results file; default results/04-variants-<family>.csv for one family, else 04-variants.csv")
     args = ap.parse_args(argv)
     names = []
     for f in args.family or ([] if not args.all else sorted(FAMILIES)):
@@ -379,8 +398,14 @@ def main(argv=None) -> None:
     if not names:
         ap.error("name a --family, a --variant, or --all")
     protocol = PROTOCOL if args.full else SCREEN
+    if args.path:
+        path = Path(args.path)
+    elif args.family and len(args.family) == 1 and not args.variant:
+        path = family_file(args.family[0])
+    else:
+        path = VARIANTS_FILE
     X, y = evaluate.training_xy(protocol)
-    rows = run_variants(names, X, y, protocol, rerun=args.rerun)
+    rows = run_variants(names, X, y, protocol, path=path, rerun=args.rerun)
     with pd.option_context("display.width", 200, "display.max_columns", 30, "display.max_colwidth", 60):
         print()
         print(summarize(rows, protocol).round(3).to_string())
