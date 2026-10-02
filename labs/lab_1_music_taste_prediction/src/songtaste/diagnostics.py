@@ -199,9 +199,10 @@ def threshold_table(oof: pd.DataFrame, grid=None) -> pd.DataFrame:
 def decision_sensitivity(rows: pd.DataFrame, protocol: Protocol = evaluate.PROTOCOL) -> pd.DataFrame:
     """What the sweep's choice would be under neighbouring rules, so
     the report can say how much turns on the strictness fixed in
-    protocol.md. `rows` are 03-sweep.csv's."""
+    protocol.md. `rows` are 03-sweep.csv's, or those joined with the
+    promoted variants' full-protocol rows (`synthesis.union_rows`)."""
     paired = report.paired(rows, protocol).drop(index="dummy", errors="ignore")
-    best = paired.index[paired["gap"].idxmax()] if False else paired["gap"].idxmax()
+    best = paired["gap"].idxmax()
     out = []
     rules = {
         "within 1 corrected se (protocol.md)": lambda t: t[-t["gap"] <= t["se"]],
@@ -213,7 +214,7 @@ def decision_sensitivity(rows: pd.DataFrame, protocol: Protocol = evaluate.PROTO
     for label, rule in rules.items():
         band = rule(paired).copy()
         band["searched"] = [report.n_searched(n) for n in band.index]
-        band["order"] = [report.SIMPLICITY.index(n) if n in report.SIMPLICITY else 99 for n in band.index]
+        band["order"] = [report.simplicity_rank(n) for n in band.index]
         band = band.sort_values(["searched", "order"])
         out.append({"rule": label, "qualifying": ", ".join(band.index), "chosen": band.index[0]})
     return pd.DataFrame(out).set_index("rule")

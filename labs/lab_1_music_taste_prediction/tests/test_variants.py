@@ -92,3 +92,13 @@ def test_catalogue_names_every_variant():
     cat = variants.catalogue()
     assert set(cat.index) == set(variants.VARIANTS)
     assert set(cat["family"]) == set(variants.FAMILIES)
+
+
+def test_summary_reads_only_its_own_protocol(xy):
+    # load_all reads 04-variants-full.csv beside the screening files; a
+    # screen summary must not average the full rows in with the screen's
+    X, y = xy
+    rows = variants.run_variants(["knn", "knn_top4"], X, y, QUICK, path=None, verbose=False)
+    full = rows.assign(n_repeats=QUICK.n_repeats + 3, accuracy=0.0)
+    table = variants.summarize(pd.concat([rows, full], ignore_index=True), QUICK)
+    assert table.loc["knn_top4", "accuracy mean"] == pytest.approx(rows.loc[rows["variant"] == "knn_top4", "accuracy"].mean())
