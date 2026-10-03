@@ -26,8 +26,14 @@ from sklearn.model_selection import (
     cross_validate,
 )
 
-from songtaste import models
-from songtaste.data import SPEC, FeatureSpec, load_training
+from labs.lab_1_music_taste_prediction.professional_reference.src.songtaste import (
+    models,
+)
+from labs.lab_1_music_taste_prediction.professional_reference.src.songtaste.data import (
+    SPEC,
+    FeatureSpec,
+    load_training,
+)
 
 RESULTS = Path(__file__).resolve().parents[2] / "results"
 BASELINES = ("dummy", "logreg", "knn")
@@ -56,10 +62,14 @@ class Protocol:
         return self.scorers.get(name, name)
 
     def outer_cv(self) -> RepeatedStratifiedKFold:
-        return RepeatedStratifiedKFold(n_splits=self.n_splits, n_repeats=self.n_repeats, random_state=self.seed)
+        return RepeatedStratifiedKFold(
+            n_splits=self.n_splits, n_repeats=self.n_repeats, random_state=self.seed
+        )
 
     def inner_cv(self) -> StratifiedKFold:
-        return StratifiedKFold(n_splits=self.inner_splits, shuffle=True, random_state=self.seed)
+        return StratifiedKFold(
+            n_splits=self.inner_splits, shuffle=True, random_state=self.seed
+        )
 
     @property
     def n_outer(self) -> int:
@@ -74,7 +84,9 @@ class Protocol:
 PROTOCOL = Protocol()
 
 
-def training_xy(protocol: Protocol = PROTOCOL, spec: FeatureSpec = SPEC) -> tuple[pd.DataFrame, pd.Series]:
+def training_xy(
+    protocol: Protocol = PROTOCOL, spec: FeatureSpec = SPEC
+) -> tuple[pd.DataFrame, pd.Series]:
     """The labelled songs a method may see: the training file, exact
     duplicates dropped (protocol.md, 'The data a method sees')."""
     df = load_training()
@@ -89,7 +101,13 @@ def estimator(name: str, protocol: Protocol = PROTOCOL, spec: FeatureSpec = SPEC
     pipe = method.pipeline(spec, protocol.seed)
     if not method.space:
         return pipe
-    return GridSearchCV(pipe, method.space, scoring=protocol.scorer(protocol.primary), cv=protocol.inner_cv(), refit=True)
+    return GridSearchCV(
+        pipe,
+        method.space,
+        scoring=protocol.scorer(protocol.primary),
+        cv=protocol.inner_cv(),
+        refit=True,
+    )
 
 
 def _chosen(fitted) -> str:
@@ -101,7 +119,11 @@ def _chosen(fitted) -> str:
 
 
 def run_protocol(
-    name: str, X: pd.DataFrame, y: pd.Series, protocol: Protocol = PROTOCOL, spec: FeatureSpec = SPEC
+    name: str,
+    X: pd.DataFrame,
+    y: pd.Series,
+    protocol: Protocol = PROTOCOL,
+    spec: FeatureSpec = SPEC,
 ) -> pd.DataFrame:
     """One method through the outer folds: one row per split, with
     method, repeat, fold, each score, the chosen hyperparameters and
@@ -129,15 +151,21 @@ def run_protocol(
     return rows
 
 
-def run_many(names, X, y, protocol: Protocol = PROTOCOL, spec: FeatureSpec = SPEC) -> pd.DataFrame:
-    return pd.concat([run_protocol(n, X, y, protocol, spec) for n in names], ignore_index=True)
+def run_many(
+    names, X, y, protocol: Protocol = PROTOCOL, spec: FeatureSpec = SPEC
+) -> pd.DataFrame:
+    return pd.concat(
+        [run_protocol(n, X, y, protocol, spec) for n in names], ignore_index=True
+    )
 
 
 def corrected_se(scores: pd.Series, protocol: Protocol = PROTOCOL) -> float:
     """Nadeau and Bengio's corrected standard error of a mean over the
     outer splits (protocol.md, 'Uncertainty'). Works on per-split scores
     and on paired per-split differences alike."""
-    return float(np.sqrt((1 / len(scores) + protocol.test_train_ratio) * scores.var(ddof=1)))
+    return float(
+        np.sqrt((1 / len(scores) + protocol.test_train_ratio) * scores.var(ddof=1))
+    )
 
 
 def summarize(rows: pd.DataFrame, protocol: Protocol = PROTOCOL) -> pd.DataFrame:
@@ -153,11 +181,16 @@ def summarize(rows: pd.DataFrame, protocol: Protocol = PROTOCOL) -> pd.DataFrame
 def paired_to_best(rows: pd.DataFrame, protocol: Protocol = PROTOCOL) -> pd.DataFrame:
     """Each method's mean accuracy gap to the best method, on the same
     splits, with the corrected error of that paired difference."""
-    wide = rows.pivot_table(index=["repeat", "fold"], columns="method", values=protocol.primary)
+    wide = rows.pivot_table(
+        index=["repeat", "fold"], columns="method", values=protocol.primary
+    )
     best = wide.mean().idxmax()
     diff = wide.sub(wide[best], axis=0)
     return pd.DataFrame(
-        {"gap_to_best": diff.mean(), "se_of_gap": diff.apply(corrected_se, protocol=protocol)}
+        {
+            "gap_to_best": diff.mean(),
+            "se_of_gap": diff.apply(corrected_se, protocol=protocol),
+        }
     ).rename_axis(f"best: {best}")
 
 
@@ -169,14 +202,23 @@ def chosen_params(rows: pd.DataFrame) -> pd.DataFrame:
 
 def write_results(rows: pd.DataFrame, path: Path) -> None:
     """Everything but the fit time, which no seed reproduces."""
-    rows.drop(columns="fit_time").to_csv(path, index=False, float_format="%.6f", lineterminator="\n")
+    rows.drop(columns="fit_time").to_csv(
+        path, index=False, float_format="%.6f", lineterminator="\n"
+    )
 
 
 def main(argv=None) -> None:
     X, y = training_xy()
     rows = run_many(BASELINES, X, y)
     write_results(rows, RESULTS / "02-baselines.csv")
-    with pd.option_context("display.width", 140, "display.max_columns", 20, "display.float_format", "{:.3f}".format):
+    with pd.option_context(
+        "display.width",
+        140,
+        "display.max_columns",
+        20,
+        "display.float_format",
+        "{:.3f}".format,
+    ):
         print(f"{len(X)} songs after dropping duplicates\n")
         print(summarize(rows), end="\n\n")
         print(paired_to_best(rows), end="\n\n")

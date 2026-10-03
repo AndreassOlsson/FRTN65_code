@@ -18,7 +18,10 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 
 import numpy as np
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
+from sklearn.discriminant_analysis import (
+    LinearDiscriminantAnalysis,
+    QuadraticDiscriminantAnalysis,
+)
 from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import (
     AdaBoostClassifier,
@@ -32,8 +35,13 @@ from sklearn.pipeline import Pipeline
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 
-from songtaste.data import SPEC, FeatureSpec
-from songtaste.features import build_preprocessor
+from labs.lab_1_music_taste_prediction.professional_reference.src.songtaste.data import (
+    SPEC,
+    FeatureSpec,
+)
+from labs.lab_1_music_taste_prediction.professional_reference.src.songtaste.features import (
+    build_preprocessor,
+)
 
 
 @dataclass(frozen=True)
@@ -54,11 +62,15 @@ def _pipe(spec: FeatureSpec, estimator) -> Pipeline:
 
 REGISTRY: dict[str, Method] = {
     # the floor: always "like", the majority class
-    "dummy": Method(lambda spec, seed: _pipe(spec, DummyClassifier(strategy="most_frequent"))),
+    "dummy": Method(
+        lambda spec, seed: _pipe(spec, DummyClassifier(strategy="most_frequent"))
+    ),
     # L2-regularised; C is the inverse strength, searched on a log grid
     # from heavy shrinkage to almost none
     "logreg": Method(
-        lambda spec, seed: _pipe(spec, LogisticRegression(max_iter=5000, random_state=seed)),
+        lambda spec, seed: _pipe(
+            spec, LogisticRegression(max_iter=5000, random_state=seed)
+        ),
         {"clf__C": [float(c) for c in np.logspace(-3, 3, 13)]},
     ),
     "knn": Method(
@@ -88,7 +100,9 @@ REGISTRY: dict[str, Method] = {
     # enough trees that adding more only changes the noise, so the count
     # is fixed and the two knobs that set each tree's variance are searched
     "rf": Method(
-        lambda spec, seed: _pipe(spec, RandomForestClassifier(n_estimators=300, n_jobs=-1, random_state=seed)),
+        lambda spec, seed: _pipe(
+            spec, RandomForestClassifier(n_estimators=300, n_jobs=-1, random_state=seed)
+        ),
         {
             "clf__max_features": ["sqrt", 0.25, 0.5],
             "clf__min_samples_leaf": [1, 3, 10],
@@ -99,7 +113,9 @@ REGISTRY: dict[str, Method] = {
     "bagging": Method(
         lambda spec, seed: _pipe(
             spec,
-            BaggingClassifier(DecisionTreeClassifier(), n_estimators=300, n_jobs=-1, random_state=seed),
+            BaggingClassifier(
+                DecisionTreeClassifier(), n_estimators=300, n_jobs=-1, random_state=seed
+            ),
         ),
         {"clf__estimator__min_samples_leaf": [1, 3, 10]},
     ),
@@ -107,7 +123,9 @@ REGISTRY: dict[str, Method] = {
     # shallow trees as classic gradient boosting, faster, and the one
     # sklearn recommends; adaboost below is the textbook variant
     "boosting": Method(
-        lambda spec, seed: _pipe(spec, HistGradientBoostingClassifier(random_state=seed)),
+        lambda spec, seed: _pipe(
+            spec, HistGradientBoostingClassifier(random_state=seed)
+        ),
         {
             "clf__learning_rate": [0.03, 0.1, 0.3],
             "clf__max_depth": [2, 3, None],
@@ -117,7 +135,8 @@ REGISTRY: dict[str, Method] = {
     # stumps, reweighting the songs the last ones got wrong
     "adaboost": Method(
         lambda spec, seed: _pipe(
-            spec, AdaBoostClassifier(DecisionTreeClassifier(max_depth=1), random_state=seed)
+            spec,
+            AdaBoostClassifier(DecisionTreeClassifier(max_depth=1), random_state=seed),
         ),
         {"clf__learning_rate": [0.1, 0.3, 1.0], "clf__n_estimators": [100, 300]},
     ),
@@ -138,4 +157,6 @@ def get(name: str) -> Method:
     try:
         return REGISTRY[name]
     except KeyError:
-        raise KeyError(f"no method {name!r}; the registry has {sorted(REGISTRY)}") from None
+        raise KeyError(
+            f"no method {name!r}; the registry has {sorted(REGISTRY)}"
+        ) from None

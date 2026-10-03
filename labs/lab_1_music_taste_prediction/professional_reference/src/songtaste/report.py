@@ -19,14 +19,24 @@ import sys
 
 import matplotlib
 
+from labs.lab_1_music_taste_prediction.professional_reference.src.songtaste import (
+    evaluate,
+)
+
 matplotlib.use("Agg")
 
 import pandas as pd
 import seaborn as sns
 from scipy import stats
 
-from songtaste import evaluate, models
-from songtaste.evaluate import PROTOCOL, RESULTS, Protocol
+from labs.lab_1_music_taste_prediction.professional_reference.src.songtaste import (
+    models,
+)
+from labs.lab_1_music_taste_prediction.professional_reference.src.songtaste.evaluate import (
+    PROTOCOL,
+    RESULTS,
+    Protocol,
+)
 
 FIGURES = RESULTS.parent / "figures"
 
@@ -69,7 +79,9 @@ def paired(rows: pd.DataFrame, protocol: Protocol = PROTOCOL) -> pd.DataFrame:
     two-sided p-value, and the posterior probabilities that the best is
     better, that the two are practically equal (within the protocol's rope), and that
     the method is better."""
-    wide = rows.pivot_table(index=["repeat", "fold"], columns="method", values=protocol.primary, sort=False)
+    wide = rows.pivot_table(
+        index=["repeat", "fold"], columns="method", values=protocol.primary, sort=False
+    )
     best = wide.drop(columns="dummy", errors="ignore").mean().idxmax()
     out = []
     for name in wide.columns:
@@ -77,7 +89,16 @@ def paired(rows: pd.DataFrame, protocol: Protocol = PROTOCOL) -> pd.DataFrame:
         k = len(diff)
         gap, se = float(diff.mean()), evaluate.corrected_se(diff, protocol)
         if name == best or se == 0:
-            out.append({"method": name, "gap": gap, "se": se, "p": 1.0, "p_best_better": 0.0, "p_rope": 1.0})
+            out.append(
+                {
+                    "method": name,
+                    "gap": gap,
+                    "se": se,
+                    "p": 1.0,
+                    "p_best_better": 0.0,
+                    "p_rope": 1.0,
+                }
+            )
             continue
         posterior = stats.t(df=k - 1, loc=gap, scale=se)
         out.append(
@@ -87,7 +108,9 @@ def paired(rows: pd.DataFrame, protocol: Protocol = PROTOCOL) -> pd.DataFrame:
                 "se": se,
                 "p": float(2 * stats.t.sf(abs(gap / se), df=k - 1)),
                 "p_best_better": float(posterior.cdf(-protocol.rope)),
-                "p_rope": float(posterior.cdf(protocol.rope) - posterior.cdf(-protocol.rope)),
+                "p_rope": float(
+                    posterior.cdf(protocol.rope) - posterior.cdf(-protocol.rope)
+                ),
             }
         )
     frame = pd.DataFrame(out).set_index("method")
@@ -95,7 +118,9 @@ def paired(rows: pd.DataFrame, protocol: Protocol = PROTOCOL) -> pd.DataFrame:
     return frame.sort_values("gap", ascending=False).rename_axis(f"vs {best}")
 
 
-def decide(rows: pd.DataFrame, protocol: Protocol = PROTOCOL) -> tuple[str, pd.DataFrame]:
+def decide(
+    rows: pd.DataFrame, protocol: Protocol = PROTOCOL
+) -> tuple[str, pd.DataFrame]:
     """protocol.md's rule: among non-dummy methods whose mean accuracy is
     within one corrected error (of the paired difference) of the best's,
     the one with the fewest searched hyperparameters, ties by SIMPLICITY.
@@ -128,9 +153,19 @@ def comparison(rows: pd.DataFrame, protocol: Protocol = PROTOCOL) -> pd.DataFram
 def plot_splits(rows: pd.DataFrame, path=None, protocol: Protocol = PROTOCOL):
     """Per-split primary score by method, best mean on top; one seaborn
     call."""
-    order = rows.groupby("method")[protocol.primary].mean().sort_values(ascending=False).index
-    ax = sns.boxplot(rows, x=protocol.primary, y="method", order=order, color="0.85", showmeans=True)
-    ax.set(xlabel=f"{protocol.primary} on each of the {protocol.n_outer} outer validation folds", ylabel="")
+    order = (
+        rows.groupby("method")[protocol.primary]
+        .mean()
+        .sort_values(ascending=False)
+        .index
+    )
+    ax = sns.boxplot(
+        rows, x=protocol.primary, y="method", order=order, color="0.85", showmeans=True
+    )
+    ax.set(
+        xlabel=f"{protocol.primary} on each of the {protocol.n_outer} outer validation folds",
+        ylabel="",
+    )
     ax.figure.tight_layout()
     if path is not None:
         ax.figure.savefig(path, dpi=150)
@@ -143,11 +178,16 @@ def main(argv=None) -> None:
     FIGURES.mkdir(exist_ok=True)
     plot_splits(rows, FIGURES / "03-accuracy-by-split.png")
     choice, band = decide(rows)
-    with pd.option_context("display.width", 200, "display.max_columns", 20, "display.max_colwidth", 80):
+    with pd.option_context(
+        "display.width", 200, "display.max_columns", 20, "display.max_colwidth", 80
+    ):
         print(comparison(rows).round(3).to_string(), end="\n\n")
         print(paired(rows).round(4).to_string(), end="\n\n")
         print(evaluate.chosen_params(rows).to_string(index=False), end="\n\n")
-        print(rows.groupby("method", sort=False)["fit_time"].mean().round(2).to_string(), end="\n\n")
+        print(
+            rows.groupby("method", sort=False)["fit_time"].mean().round(2).to_string(),
+            end="\n\n",
+        )
         print("qualifying under the rule:\n" + band.round(4).to_string())
     print(f"\nchosen: {choice}")
 

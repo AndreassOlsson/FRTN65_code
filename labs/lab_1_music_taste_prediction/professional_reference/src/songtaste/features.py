@@ -13,17 +13,25 @@ from sklearn.base import TransformerMixin
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from songtaste.data import FeatureSpec
+from labs.lab_1_music_taste_prediction.professional_reference.src.songtaste.data import (
+    FeatureSpec,
+)
 
 
-def build_preprocessor(spec: FeatureSpec, numeric: TransformerMixin | None = None) -> ColumnTransformer:
+def build_preprocessor(
+    spec: FeatureSpec, numeric: TransformerMixin | None = None
+) -> ColumnTransformer:
     """StandardScaler on the numeric columns, OneHotEncoder on the
     categorical ones; a category unseen in training encodes as all
     zeros instead of failing. Dense output, since some estimators
     (kNN with some metrics, QDA) do not take sparse input."""
     return ColumnTransformer(
         [
-            ("numeric", numeric if numeric is not None else StandardScaler(), list(spec.numeric)),
+            (
+                "numeric",
+                numeric if numeric is not None else StandardScaler(),
+                list(spec.numeric),
+            ),
             (
                 "categorical",
                 OneHotEncoder(handle_unknown="ignore", sparse_output=False),
