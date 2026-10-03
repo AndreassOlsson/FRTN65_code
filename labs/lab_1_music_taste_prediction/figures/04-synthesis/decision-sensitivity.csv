@@ -1,0 +1,11 @@
+rule,qualifying,chosen,table
+within 1 corrected se (protocol.md),rf,rf,03-sweep
+within 2 corrected se,"logreg, svm_linear, bagging, svm_rbf, rf, adaboost, boosting",logreg,03-sweep
+corrected t-test p > 0.05,"logreg, svm_linear, bagging, svm_rbf, rf, adaboost, boosting",logreg,03-sweep
+within the rope (gap > -0.01),rf,rf,03-sweep
+"best mean, no band",rf,rf,03-sweep
+within 1 corrected se (protocol.md),"knn_top4, rf",knn_top4,03-sweep and promoted
+within 2 corrected se,"logreg, svm_linear, bagging, knn_top4, svm_rbf, rf, adaboost, boosting",logreg,03-sweep and promoted
+corrected t-test p > 0.05,"logreg, svm_linear, bagging, knn_top4, svm_rbf, rf, adaboost, boosting",logreg,03-sweep and promoted
+within the rope (gap > -0.01),"knn_top4, rf",knn_top4,03-sweep and promoted
+"best mean, no band",rf,rf,03-sweep and promoted

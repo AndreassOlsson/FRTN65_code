@@ -85,3 +85,13 @@ def test_sweep_reuses_the_baselines_rows():
     base = pd.read_csv(evaluate.RESULTS / "02-baselines.csv")
     reused = sweep[sweep["method"].isin(evaluate.BASELINES)].reset_index(drop=True)
     pd.testing.assert_frame_equal(reused, base)
+
+
+def test_a_promoted_variant_is_counted_from_its_grid_and_ranked_at_its_base():
+    # knn_top4 searches knn's two knobs, the same count as rf, so the tie
+    # goes by the order, where it takes knn's place, ahead of rf
+    jitter = rng.normal(0, 0.01, 25)
+    rows = rows_from({"rf": list(0.83 + NOISE), "knn_top4": list(0.829 + NOISE + jitter)})
+    assert report.n_searched("knn_top4") == 2
+    assert report.simplicity_rank("knn") < report.simplicity_rank("knn_top4") < report.simplicity_rank("tree")
+    assert report.decide(rows)[0] == "knn_top4"

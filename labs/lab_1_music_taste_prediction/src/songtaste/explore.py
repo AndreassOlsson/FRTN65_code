@@ -184,3 +184,92 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+# ---- the model-based feature screen (his exploration.ipynb, made one function)
+
+
+def feature_screen(
+    X: pd.DataFrame,
+    y: pd.Series,
+    model=None,
+    protocol=None,
+    scoring: str = "roc_auc",
+    null_draws: int = 20,
+    pairs: bool = True,
+) -> dict:
+    """How much a model gets from each feature alone and from each pair
+    beyond its better member, under the protocol's folds.
+
+    `model` is any estimator or a callable returning one (default a
+    depth-4 decision tree); the same capacity is used for singles and
+    pairs, so a pair's gain is interaction and not an extra level of
+    tree. `null_draws` shuffled copies of the best single feature,
+    paired with the real one, give the gain that chance alone produces;
+    a pair gain is worth reading only when it clears the null's max.
+    Returns `singles`, `pairs` (sorted by gain) and `null` (the draws).
+    """
+    from sklearn.base import clone
+    from sklearn.model_selection import cross_val_score
+    from sklearn.tree import DecisionTreeClassifier
+
+    from songtaste.evaluate import PROTOCOL
+
+    protocol = protocol or PROTOCOL
+    base = model() if callable(model) and not hasattr(model, "fit") else model
+    if base is None:
+        base = DecisionTreeClassifier(max_depth=4, random_state=protocol.seed)
+
+    def score(cols) -> float:
+        est = clone(base)
+        if hasattr(est, "random_state"):
+            est.set_params(random_state=protocol.seed)
+        return float(cross_val_score(est, X[list(cols)], y, cv=protocol.outer_cv(), scoring=scoring, n_jobs=-1).mean())
+
+    singles = pd.Series({f: score([f]) for f in X.columns}, name=scoring).rename_axis("feature")
+    singles = singles.sort_values(ascending=False).to_frame()
+    out = {"singles": singles.round(3)}
+    if pairs:
+        from itertools import combinations
+
+        rows = []
+        for a, b in combinations(X.columns, 2):
+            s = score([a, b])
+            best = max(singles.loc[a, scoring], singles.loc[b, scoring])
+            rows.append({"feat1": a, "feat2": b, "pair": s, "best_single": best, "gain": s - best})
+        table = pd.DataFrame(rows).sort_values("gain", ascending=False)
+        table["name"] = table["feat1"] + " + " + table["feat2"]
+        out["pairs"] = table.reset_index(drop=True).round(3)
+    if null_draws:
+        import numpy as np
+
+        rng = np.random.default_rng(protocol.seed)
+        top = singles.index[0]
+        base_score = singles.loc[top, scoring]
+        draws = []
+        for _ in range(null_draws):
+            Xn = X[[top]].copy()
+            Xn["shuffled"] = rng.permutation(X[top].to_numpy())
+            est = clone(base)
+            draws.append(float(cross_val_score(est, Xn, y, cv=protocol.outer_cv(), scoring=scoring, n_jobs=-1).mean()) - base_score)
+        out["null"] = pd.Series(draws, name=f"gain from a shuffled copy of {top}")
+    return out
+
+
+def plot_feature_screen(screen: dict, top: int = 10):
+    """Two bars: every single feature's score, and the top pair gains
+    with the null's maximum drawn as a line."""
+    import matplotlib.pyplot as plt
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4.5), constrained_layout=True)
+    singles = screen["singles"].reset_index()
+    sns.barplot(singles, x=singles.columns[1], y="feature", color="steelblue", ax=axes[0])
+    axes[0].axvline(0.5, color="black", ls="--", lw=1)
+    axes[0].set(title=f"single feature {singles.columns[1]}", xlim=(0.45, 1))
+    if "pairs" in screen:
+        sns.barplot(screen["pairs"].head(top), x="gain", y="name", color="steelblue", ax=axes[1])
+        axes[1].set(title="pair gain over the better single", ylabel="")
+        if "null" in screen:
+            axes[1].axvline(screen["null"].max(), color="red", ls="--", lw=1, label="null max")
+            axes[1].legend()
+    return fig

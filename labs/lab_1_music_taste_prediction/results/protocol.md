@@ -87,3 +87,65 @@ linear SVM, RBF SVM, bagging, random forest, boosting. The best method
 itself always qualifies, so the rule always returns one method. The
 chosen method is then refit, by the same `GridSearchCV` over the
 deduplicated training set, for task 4.
+
+## 2026-10-02: the screening protocol and the promotion rule
+
+Added for the variants stage (`songtaste.variants`, `results/04-variants.csv`,
+`notebooks/04_variants.ipynb`). Nothing above changes; 02-baselines and
+03-sweep stand as they were.
+
+- **The screen** is this protocol with `n_repeats=2`: the same
+  stratified 5 folds at the same seed, ten outer splits instead of
+  twenty-five, every search still inside each outer training part. It
+  exists because the variant grid is wide (about forty variants) and a
+  variant is a question, not a candidate.
+- **A variant becomes a candidate by promotion**, and only then is it
+  run under the full protocol above: per family, the variant with the
+  best mean primary score, kept only if its paired gap to its own base
+  (the registry entry it starts from, on the same ten splits) exceeds
+  the corrected standard error of that gap. `variants.promoted` applies
+  this.
+- **The decision rule does not change.** A promoted variant that goes
+  through the full protocol joins the comparison of 03-sweep as one
+  more method, with its searched hyperparameters counted as there, and
+  the rule above decides as before. A change of choice would be stated
+  in a dated section here, with the sweep table re-read.
+- Screening numbers are never quoted as if they were full-protocol
+  numbers; the results file tags every row with its `n_repeats`.
+
+## 2026-10-02: the variants stage closes, and the choice moves to knn_top4
+
+Nothing above changes; this section applies the rule to a larger table,
+as the section before it said it would.
+
+- **What was promoted.** Of the four families screened, one variant
+  cleared the promotion rule: `knn_top4`, kNN on speechiness,
+  loudness, acousticness and energy only, with kNN's own grid
+  (`n_neighbors`, `weights`). Its screen gap to `knn` was +0.020
+  against a corrected error of 0.018. Nothing from the linear, SVM or
+  tree families cleared it (`04-variants.md`, "Promotion").
+- **Under the full protocol** (`04-variants-full.csv`, 25 splits,
+  `n_repeats` 5) it scores 0.826 ± 0.017. Joined to `03-sweep.csv` as
+  one more method, its paired gap to rf, still the best mean at
+  0.830, is -0.0046 with a corrected error of 0.0144, so it is inside
+  the one-error band. No other method is.
+- **How the rule decides between the two.** Both search two
+  hyperparameters, so the tie goes by the simplicity order. That order
+  names methods, not variants; a promoted variant takes the place of
+  the method it varies, just after it (`report.simplicity_rank`),
+  because it is that method with a knob turned, and here the knob
+  removes features. kNN comes before the random forest in the order,
+  so **the rule chooses `knn_top4`**. Ranked after every method
+  instead, the variant would lose the tie and rf would stand; this
+  section is where the placement is fixed, and it is fixed by the
+  reading above, not by which answer it gives.
+- **Whether the promotion manufactured the result.** The screen's ten
+  splits are the first two repeats of the full protocol's 25, so
+  `knn_top4` was chosen among about forty variants on ten of the
+  splits it is now scored on. On the other fifteen, which the screen
+  never saw, it is 0.001 behind rf and 0.038 ahead of plain kNN; the
+  result does not come from the selection.
+- **What this does not change.** The submission string in
+  `submission-2026-10-01.txt` was made by rf before this section, and
+  stays as it is. Whether a new one is made with `knn_top4` is his call,
+  not this protocol's.
