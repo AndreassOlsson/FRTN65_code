@@ -36,20 +36,20 @@ Good declaration of limitations: small dataset, artist IDs unavailable, target a
 
 ## The plain text review comment to submit in canvas
 
-Great job overall! But could use a little more motivation with certain choices and it would be interesting to see some more feature selection.
+Great job overall! The two things I would have liked to see more of are motivation behind some of the choices, and some actual feature selection.
 
-Presentation and code: yes to both. The deck covers all it needs, and we can reproduce the code, because the source code and datasets were provided, and the seeds are fixed. However, there is no python requirements file, which is inconvinent for people like me who use Python venvs instead of anaconda.
+Presentation and code: yes to both. The deck covers what it needs to, and the code reproduces since the source, the datasets and the seeds are all there. However, there is no requirements file, which is a bit inconvenient for people like me who use venvs instead of anaconda.
 
-Data: properly handled for a problem this size. Before touching anything the script checks that labels are exactly 0 and 1, that every feature is finite, and that no two identical feature rows disagree on the label. Then the 14 duplicates are dropped before the split, so the same record cannot sit on both sides of it. Class balance (443/293) and the overlap in energy and instrumentalness are shown. The exploration itself is one slide, which is on the thin side: a like rate per key, mode and time_signature, or a look at which features the forest actually uses, would be nice to have.
+Data: properly handled. The script sanity checks the labels, the features and the duplicates before doing anything, and the duplicates are dropped before the split so nothing ends up on both sides of it. The exploration itself is only one slide though, which felt a bit thin. Something like the like rate per key, mode and time signature would have been nice to see.
 
-Features: motivated, but not really selected. Keeping all 13, standardizing the 10 numeric ones for the distance and margin based models and leaving them raw for the trees, and one-hot encoding the categoricals is all correct and each gets its reason on the slide. What is missing is any test of whether a subset of these features does as well or worse. I.e. there is no real feature set comparison, so the report does not really say which features are the most important.
+Features: motivated, but not really selected. The preprocessing (scaling for the distance based models, raw values for the trees, one-hot for the categoricals) is correct and explained on the slide. But all 13 features are kept without testing whether a subset does as well or worse, so the report never really says which features matter. That would have been interesting to see.
 
-Methods and Parameters: a reasonable spread. Logistic regression (linear), kNN (local), RBF SVM (kernel), random forest and gradient boosting (two ensembles) cover the main families from the course. The parameters chosen for the search are good, for example, log spaced C, but they are not necessarily motivated, which could be looked into.
+Methods and parameters: a reasonable spread, from logistic regression and kNN to RBF SVM and the two tree ensembles, and the method slides show that you understand what each parameter does. The search grids look sensible (log spaced C for example), but why those ranges in particular is not really motivated, which could be looked into.
 
-Evaluation: personally, I think this is one of the strongest parts. The same five folds for every setting, preprocessing fitted inside each fold, a majority baseline (60%), the fold standard deviation next to every mean, an explicit note that the CV score of a search winner is optimistic, and a holdout untouched until the choice was frozen. The holdout reports accuracy, balanced accuracy, F1, ROC-AUC and the confusion matrix, so the 81% is not hiding a bad minority class. One thing I think maybe could make it even stronger, would be if you also fit the runner-ups on the full dataset for comparison. Right now it seems like you only fit the best choice on the total dataset. It would be interesting to see if those 0.33 pp still holds. My guess is not necessarily, because you had SD of 3.63 so its quite hard to tell which model is genuiunely better.
+Evaluation: personally I think this is the strongest part. Same folds for every model, preprocessing fitted inside each fold, a majority baseline, the fold SD next to every mean, and a holdout that was left alone until the choice was made. One thing that maybe could make it even stronger: right now only the winner is scored on the holdout. It would be interesting to see the runner-ups there too, to check whether those 0.33 pp still hold. My guess is not necessarily, because with an SD of 3.63 it is quite hard to tell which model is genuinely better.
 
 Code: readable and well documented. And the models dict (pipeline plus grid per model) makes adding or removing a method very easy.
 
-The limitations mentioned were a nice bonus!
+The limitations slide was a nice bonus!
 
 Good job Xinran!
